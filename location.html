@@ -72,5 +72,37 @@ if (value === "tetris") window.location.href = "tetris.html";
 }
 </script>
 
+    <script>
+(() => {
+  console.log("🎮 Konami listener activo");
+
+  const konami = [
+    "arrowup","arrowup",
+    "arrowdown","arrowdown",
+    "arrowleft","arrowright",
+    "arrowleft","arrowright",
+    "b","a"
+  ];
+
+  let pos = 0;
+
+  window.addEventListener("keydown", (e) => {
+    const key = e.key.toLowerCase();
+    console.log("Tecla:", key, "Esperada:", konami[pos]);
+
+    if (key === konami[pos]) {
+      pos++;
+      if (pos === konami.length) {
+        alert("🎉 KONAMI CODE ACTIVATED");
+        window.location.href = "arcade.html";
+        pos = 0;
+      }
+    } else {
+      pos = 0;
+    }
+  });
+})();
+</script>
 </body>
+
 </html>
