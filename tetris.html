@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TETRIS 🧱 Retro</title>
+
+<style>
+body {
+    background: linear-gradient(#c0c0ff, #e0e0ff);
+    font-family: Tahoma, Verdana, "Comic Sans MS", sans-serif;
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.container {
+    background: #f0f0f0;
+    border: 4px solid #333;
+    padding: 15px;
+    text-align: center;
+}
+
+h1 {
+    color: #00008b;
+    text-shadow: 1px 1px white;
+    margin: 5px 0;
+}
+
+.game-frame {
+    position: relative;
+    border: 4px solid #333;
+    background: black;
+    display: inline-block;
+}
+
+canvas {
+    display: block;
+    background: black;
+}
+
+#countdown, #gameOverMsg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 42px;
+    font-weight: bold;
+    color: red;
+    text-shadow: 2px 2px black;
+    pointer-events: none;
+}
+
+#gameOverMsg {
+    display: none;
+}
+
+#score {
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+button {
+    margin-top: 10px;
+    padding: 6px 14px;
+    font-weight: bold;
+    border: 2px outset #666;
+    cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>TETRIS</h1>
+
+    <div class="game-frame">
+        <canvas id="tetris" width="200" height="400"></canvas>
+        <div id="countdown"></div>
+        <div id="gameOverMsg">GAME OVER</div>
+    </div>
+
+    <div id="score">Score: 0</div>
+    <button id="restartBtn" style="display:none;">Restart</button>
+    <button onclick="location.href='index.html'">Back</button>
+    <p>← → move · ↑ rotate · ↓ drop</p>
+</div>
+
+<script>
+/* ===== SETUP ===== */
+const canvas = document.getElementById("tetris");
+const ctx = canvas.getContext("2d");
+const blockSize = 20;
+
+const countdownEl = document.getElementById("countdown");
+const gameOverMsg = document.getElementById("gameOverMsg");
+const restartBtn = document.getElementById("restartBtn");
+const scoreEl = document.getElementById("score");
+
+/* ===== SOUNDS ===== */
+const sonidoInicio = new Audio("sounds/inicio.mp3");
+const sonidoMover  = new Audio("sounds/mover.mp3");
+const sonidoCaer   = new Audio("sounds/comer.mp3");
+const sonidoLinea  = new Audio("sounds/linea.mp3");
+const sonidoPerder = new Audio("sounds/muerte.mp3");
+
+[sonidoInicio, sonidoMover, sonidoCaer, sonidoLinea, sonidoPerder]
+.forEach(s => s.volume = 0.5);
+
+/* ===== COLORS ===== */
+const colors = [
+    null,
+    "#00ff00",
+    "#ff0000",
+    "#0000ff",
+    "#ffff00",
+    "#ff00ff",
+    "#00ffff",
+    "#ffa500"
+];
+
+/* ===== ARENA ===== */
+const arena = Array.from({ length: 20 }, () => Array(10).fill(0));
+
+/* ===== PLAYER ===== */
+const player = {
+    pos: { x: 0, y: 0 },
+    matrix: null,
+    score: 0
+};
+
+let dropCounter = 0;
+let dropInterval = 800;
+let lastTime = 0;
+let animationId = null;
+let gameOver = false;
+
+/* ===== PIECES ===== */
+function createPiece(type) {
+    if (type === "T") return [[0,1,0],[1,1,1]];
+    if (type === "O") return [[2,2],[2,2]];
+    if (type === "L") return [[0,0,3],[3,3,3]];
+    if (type === "J") return [[4,0,0],[4,4,4]];
+    if (type === "I") return [[5],[5],[5],[5]];
+    if (type === "S") return [[0,6,6],[6,6,0]];
+    if (type === "Z") return [[7,7,0],[0,7,7]];
+}
+
+/* ===== COLLISION (MARCO REAL) ===== */
+function collide() {
+    for (let y = 0; y < player.matrix.length; y++) {
+        for (let x = 0; x < player.matrix[y].length; x++) {
+            if (player.matrix[y][x]) {
+                const nx = x + player.pos.x;
+                const ny = y + player.pos.y;
+
+                if (
+                    nx < 0 ||
+                    nx >= arena[0].length ||
+                    ny >= arena.length
+                ) return true;
+
+                if (arena[ny]?.[nx]) return true;
+            }
+        }
+    }
+    return false;
+}
+
+/* ===== RESET PIECE ===== */
+function playerReset() {
+    const pieces = "TJLOSZI";
+    player.matrix = createPiece(pieces[Math.random() * pieces.length | 0]);
+    player.pos.y = 0;
+    player.pos.x = 3;
+
+    if (collide()) {
+        sonidoPerder.play();
+        gameOver = true;
+        cancelAnimationFrame(animationId);
+        gameOverMsg.style.display = "block";
+        restartBtn.style.display = "inline-block";
+    }
+}
+
+/* ===== MERGE ===== */
+function merge() {
+    player.matrix.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value) arena[y + player.pos.y][x + player.pos.x] = value;
+        });
+    });
+    sonidoCaer.play();
+}
+
+/* ===== CLEAR LINES ===== */
+function arenaSweep() {
+    for (let y = arena.length - 1; y >= 0; y--) {
+        if (arena[y].every(v => v !== 0)) {
+            arena.splice(y, 1);
+            arena.unshift(Array(10).fill(0));
+            player.score += 10;
+            sonidoLinea.play();
+        }
+    }
+}
+
+/* ===== DRAW BLOCK (TEXTURA) ===== */
+function drawBlock(x, y, color) {
+    const px = x * blockSize;
+    const py = y * blockSize;
+
+    ctx.fillStyle = color;
+    ctx.fillRect(px, py, blockSize, blockSize);
+
+    ctx.strokeStyle = "#fff";
+    ctx.beginPath();
+    ctx.moveTo(px, py + blockSize);
+    ctx.lineTo(px, py);
+    ctx.lineTo(px + blockSize, py);
+    ctx.stroke();
+
+    ctx.strokeStyle = "#000";
+    ctx.beginPath();
+    ctx.moveTo(px + blockSize, py);
+    ctx.lineTo(px + blockSize, py + blockSize);
+    ctx.lineTo(px, py + blockSize);
+    ctx.stroke();
+}
+
+/* ===== DRAW ===== */
+function draw() {
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    arena.forEach((row, y) =>
+        row.forEach((value, x) => {
+            if (value) drawBlock(x, y, colors[value]);
+        })
+    );
+
+    player.matrix.forEach((row, y) =>
+        row.forEach((value, x) => {
+            if (value) drawBlock(x + player.pos.x, y + player.pos.y, colors[value]);
+        })
+    );
+}
+
+/* ===== GAME LOOP ===== */
+function update(time = 0) {
+    if (gameOver) return;
+
+    const delta = time - lastTime;
+    lastTime = time;
+    dropCounter += delta;
+
+    if (dropCounter > dropInterval) {
+        player.pos.y++;
+        if (collide()) {
+            player.pos.y--;
+            merge();
+            arenaSweep();
+            updateScore();
+            playerReset();
+        }
+        dropCounter = 0;
+    }
+
+    draw();
+    animationId = requestAnimationFrame(update);
+}
+
+/* ===== SCORE ===== */
+function updateScore() {
+    scoreEl.textContent = "Score: " + player.score;
+}
+
+/* ===== CONTROLS ===== */
+document.addEventListener("keydown", e => {
+    if (gameOver) return;
+
+    if (e.key === "ArrowLeft") { player.pos.x--; sonidoMover.play(); }
+    if (e.key === "ArrowRight") { player.pos.x++; sonidoMover.play(); }
+    if (e.key === "ArrowDown") player.pos.y++;
+    if (e.key === "ArrowUp") player.matrix = rotate(player.matrix);
+
+    if (collide()) {
+        if (e.key === "ArrowDown") player.pos.y--;
+        else player.pos.x += e.key === "ArrowLeft" ? 1 : -1;
+    }
+});
+
+/* ===== ROTATE ===== */
+function rotate(matrix) {
+    return matrix[0].map((_, i) => matrix.map(row => row[i]).reverse());
+}
+
+/* ===== RESTART ===== */
+restartBtn.addEventListener("click", () => {
+    arena.forEach(row => row.fill(0));
+    player.score = 0;
+    updateScore();
+    gameOver = false;
+
+    gameOverMsg.style.display = "none";
+    restartBtn.style.display = "none";
+
+    lastTime = 0;
+    dropCounter = 0;
+    playerReset();
+    update();
+});
+
+/* ===== COUNTDOWN ===== */
+let count = 3;
+countdownEl.textContent = count;
+sonidoInicio.play();
+
+const timer = setInterval(() => {
+    count--;
+    if (count > 0) countdownEl.textContent = count;
+    else {
+        countdownEl.textContent = "";
+        clearInterval(timer);
+        playerReset();
+        updateScore();
+        update();
+    }
+}, 1000);
+</script>
+
+</body>
+</html>

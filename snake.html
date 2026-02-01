@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snake Game 🐍 Retro</title>
+
+<style>
+/* ===== CONTENEDOR RAÍZ (AISLAMIENTO) ===== */
+.snake-app {
+    background: linear-gradient(#c0c0ff, #e0e0ff);
+    font-family: "Comic Sans MS", Tahoma, Verdana, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* ===== CONTENEDOR PRINCIPAL ===== */
+.snake-container {
+    width: 420px;
+    background-color: #f0f0f0;
+    border: 4px solid #333;
+    padding: 10px;
+    text-align: center;
+}
+
+/* ===== HEADER ===== */
+header h1 {
+    color: #00008b;
+    text-shadow: 2px 2px #fff;
+    margin: 10px 0;
+}
+
+/* ===== MENU ===== */
+.menu {
+    background-color: #c0c0c0;
+    border: 3px inset #666;
+    padding: 8px;
+    margin-bottom: 10px;
+}
+
+.menu a {
+    text-decoration: none;
+    color: black;
+    background-color: #e0e0e0;
+    border: 2px outset #666;
+    padding: 5px 15px;
+    font-weight: bold;
+}
+
+.menu a:hover {
+    background-color: #d0d0d0;
+}
+
+/* ===== MAIN ===== */
+main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* ===== COUNTDOWN ===== */
+#countdown {
+    font-size: 40px;
+    font-weight: bold;
+    color: red;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px #000;
+}
+
+/* ===== GAME FRAME ===== */
+.game-frame {
+    position: relative;
+    border: 4px solid #333;
+    background-color: #dcdcdc;
+    padding: 10px;
+}
+
+/* ===== CANVAS ===== */
+canvas {
+    background-color: #a0ffa0;
+    border: 3px solid #000;
+}
+
+/* ===== GAME OVER ===== */
+#message {
+    position: absolute;
+    inset: 0;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+#message span {
+    background: #ffff99;
+    border: 3px inset #900;
+    padding: 20px 30px;
+    font-size: 26px;
+    font-weight: bold;
+    color: red;
+    text-shadow: 1px 1px #fff;
+}
+
+/* ===== SCORE ===== */
+#score {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 10px 0;
+    color: #00008b;
+}
+
+/* ===== BOTÓN ===== */
+#restartBtn {
+    padding: 8px 20px;
+    background-color: #ffcc00;
+    border: 3px outset #999;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#restartBtn:hover {
+    background-color: #ffdd33;
+}
+
+footer {
+    font-size: 12px;
+    margin-top: 8px;
+}
+</style>
+</head>
+
+<body>
+<div class="snake-app">
+<div class="snake-container">
+
+<header>
+    <h1>SNAKE GAME 🐍 Retro</h1>
+</header>
+
+<nav class="menu">
+    <a href="index.html">Back to Home</a>
+</nav>
+
+<main>
+    <div id="countdown">Get Ready...</div>
+
+    <div class="game-frame">
+        <canvas id="game" width="300" height="300"></canvas>
+        <div id="message"><span>Game Over 🐍</span></div>
+    </div>
+
+    <p id="score">Score: 0</p>
+    <button id="restartBtn">Restart Game</button>
+    <p>Use arrow keys to play</p>
+</main>
+
+<footer>
+    <p>Easter Egg</p>
+</footer>
+
+</div>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const box = 15;
+
+let snake, food, direction, game, score, speed, countdownInterval;
+
+const sonidoInicio = new Audio('sounds/inicio.mp3');
+const sonidoComer  = new Audio('sounds/comer.mp3');
+const sonidoMover  = new Audio('sounds/mover.mp3');
+const sonidoMuerte = new Audio('sounds/muerte.mp3');
+
+const scoreDisplay = document.getElementById("score");
+const restartBtn = document.getElementById("restartBtn");
+const message = document.getElementById("message");
+const countdown = document.getElementById("countdown");
+
+window.addEventListener("keydown", e => {
+    if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) e.preventDefault();
+});
+
+restartBtn.onclick = restartGame;
+
+function restartGame() {
+    message.style.display = "none";
+    clearInterval(game);
+    clearInterval(countdownInterval);
+    startCountdown();
+}
+
+function startCountdown() {
+    let count = 3;
+    countdown.textContent = count;
+    sonidoInicio.play();
+
+    countdownInterval = setInterval(() => {
+        count--;
+        if (count > 0) countdown.textContent = count;
+        else {
+            clearInterval(countdownInterval);
+            countdown.textContent = "GO!";
+            startGame();
+        }
+    }, 1000);
+}
+
+function startGame() {
+    snake = [{ x: 9 * box, y: 9 * box }];
+    direction = "RIGHT";
+    food = randomFood();
+    score = 0;
+    speed = 120;
+    scoreDisplay.textContent = `Score: ${score}`;
+    document.addEventListener("keydown", changeDirection);
+    game = setInterval(draw, speed);
+}
+
+function randomFood() {
+    return { x: Math.floor(Math.random() * 20) * box, y: Math.floor(Math.random() * 20) * box };
+}
+
+function changeDirection(e) {
+    const key = e.key;
+    let newDir = direction;
+
+    if (key==="ArrowUp" && direction!=="DOWN") newDir="UP";
+    if (key==="ArrowDown" && direction!=="UP") newDir="DOWN";
+    if (key==="ArrowLeft" && direction!=="RIGHT") newDir="LEFT";
+    if (key==="ArrowRight" && direction!=="LEFT") newDir="RIGHT";
+
+    if (newDir !== direction) {
+        direction = newDir;
+        sonidoMover.play();
+    }
+}
+
+function draw() {
+    ctx.fillStyle = "#a0ffa0";
+    ctx.fillRect(0,0,300,300);
+
+    snake.forEach((p,i)=>{
+        ctx.fillStyle = i===0 ? "#00ff00" : "#008000";
+        ctx.fillRect(p.x,p.y,box,box);
+        ctx.strokeStyle="#003300";
+        ctx.strokeRect(p.x,p.y,box,box);
+    });
+
+    ctx.fillStyle="red";
+    ctx.beginPath();
+    ctx.arc(food.x+box/2, food.y+box/2, box/2, 0, Math.PI*2);
+    ctx.fill();
+
+    let headX = snake[0].x;
+    let headY = snake[0].y;
+
+    if(direction==="UP") headY-=box;
+    if(direction==="DOWN") headY+=box;
+    if(direction==="LEFT") headX-=box;
+    if(direction==="RIGHT") headX+=box;
+
+    if(headX<0||headY<0||headX>=300||headY>=300||snake.some(p=>p.x===headX&&p.y===headY)){
+        sonidoMuerte.play();
+        clearInterval(game);
+        message.style.display="flex";
+        return;
+    }
+
+    if(headX===food.x && headY===food.y){
+        food=randomFood();
+        score++;
+        scoreDisplay.textContent=`Score: ${score}`;
+        sonidoComer.play();
+    } else snake.pop();
+
+    snake.unshift({x:headX,y:headY});
+}
+
+startCountdown();
+</script>
+
+</body>
+</html>

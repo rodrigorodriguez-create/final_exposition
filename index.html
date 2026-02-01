@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ixtapa - Home</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+
+<header>
+<div class="toolbar">
+    <span class="logo">IXTAPA WEB</span>
+
+ <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Search...">
+    <button onclick="checkSearch()">Go</button>
+</div>
+
+    <div class="icons">
+        <span>🏠</span>
+        <span>📍</span>
+        <span>🏖️</span>
+        <span>☀️</span>
+        <span>🍽️</span>
+    </div>
+</div>
+
+<nav class="menu">
+    <a href="index.html">Home</a>
+    <a href="location.html">Location</a>
+    <a href="activities.html">Activities</a>
+    <a href="weather.html">Weather</a>
+    <a href="food.html">Food</a>
+</nav>
+<main>
+<div class="comic-container">
+    <img src="img/img1.jpg" alt="Ixtapa" class="main-img">
+    <div class="comic-bubble">
+        Ixtapa is a beautiful place.
+    </div>
+</div>
+
+    <p>Ixtapa is a beautiful tourist destination in Mexico.
+It is a popular place for vacations because of its beaches, warm weather and calm atmosphere.
+This website shows information about Ixtapa and Azul Ixtapa.
+Use the buttons above to learn more about this place.</p>
+</main>
+
+<div id="snakeContainer" style="display:none; text-align:center;">
+    <h2>🐍 Snake Game</h2>
+    <canvas id="snakeGame" width="300" height="300"></canvas>
+    <p>Use arrow keys to play</p>
+</div>
+
+<footer>
+    <p>Made by Rodrigo Rodríguez</p>
+</footer>
+
+</div>
+
+<script>
+function checkSearch() {
+    const value = document.getElementById("searchInput").value.toLowerCase();
+   if (value === "snake") window.location.href = "snake.html";
+if (value === "tetris") window.location.href = "tetris.html";
+const konamiCode = [
+  "ArrowUp","ArrowUp",
+  "ArrowDown","ArrowDown",
+  "ArrowLeft","ArrowRight",
+  "ArrowLeft","ArrowRight",
+  "b","a"
+];
+
+let konamiIndex = 0;
+
+document.addEventListener("keydown", e => {
+  if (e.key === konamiCode[konamiIndex]) {
+    konamiIndex++;
+    if (konamiIndex === konamiCode.length) {
+      window.location.href = "arcade.html";
+    }
+  } else {
+    konamiIndex = 0;
+  }
+});
+
+}
+</script>
+
+<script>
+(() => {
+  console.log("🎮 Konami listener activo");
+
+  const konami = [
+    "arrowup","arrowup",
+    "arrowdown","arrowdown",
+    "arrowleft","arrowright",
+    "arrowleft","arrowright",
+    "b","a"
+  ];
+
+  let pos = 0;
+
+  window.addEventListener("keydown", (e) => {
+    const key = e.key.toLowerCase();
+    console.log("Tecla:", key, "Esperada:", konami[pos]);
+
+    if (key === konami[pos]) {
+      pos++;
+      if (pos === konami.length) {
+        alert("🎉 KONAMI CODE ACTIVATED");
+        window.location.href = "arcade.html";
+        pos = 0;
+      }
+    } else {
+      pos = 0;
+    }
+  });
+})();
+</script>
+</body>
+</html>

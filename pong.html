@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pong 🕹️ Retro</title>
+
+<style>
+.pong-app {
+    background: linear-gradient(#c0c0ff, #e0e0ff);
+    font-family: "Comic Sans MS", Tahoma, Verdana, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.pong-container {
+    width: 420px;
+    background-color: #f0f0f0;
+    border: 4px solid #333;
+    padding: 10px;
+    text-align: center;
+}
+
+header h1 {
+    color: #00008b;
+    text-shadow: 2px 2px #fff;
+    margin: 10px 0;
+}
+
+.menu {
+    background-color: #c0c0c0;
+    border: 3px inset #666;
+    padding: 8px;
+    margin-bottom: 10px;
+}
+
+.menu a {
+    text-decoration: none;
+    color: black;
+    background-color: #e0e0e0;
+    border: 2px outset #666;
+    padding: 5px 15px;
+    font-weight: bold;
+}
+
+.menu a:hover {
+    background-color: #d0d0d0;
+}
+
+.game-frame {
+    position: relative;
+    border: 4px solid #333;
+    background-color: #dcdcdc;
+    padding: 10px;
+}
+
+canvas {
+    background-color: black;
+    border: 3px solid #000;
+}
+
+#message {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+}
+
+#message span {
+    background: #ffff99;
+    border: 3px inset #900;
+    padding: 15px 25px;
+    font-size: 22px;
+    font-weight: bold;
+    color: red;
+}
+
+#score {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 8px 0;
+    color: #00008b;
+}
+
+button {
+    padding: 8px 20px;
+    background-color: #ffcc00;
+    border: 3px outset #999;
+    cursor: pointer;
+    font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+<div class="pong-app">
+<div class="pong-container">
+
+<header>
+    <h1>PONG 🕹️ Retro</h1>
+</header>
+
+<nav class="menu">
+    <a href="index.html">Back to Home</a>
+</nav>
+
+<div class="game-frame">
+    <canvas id="game" width="300" height="200"></canvas>
+    <div id="message"><span id="msgText">GET READY</span></div>
+</div>
+
+<p id="score">Player: 0 | CPU: 0</p>
+<button onclick="restart()">Restart</button>
+<p>Use ↑ ↓ to play</p>
+
+</div>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const paddleH = 40;
+const paddleW = 6;
+const moveSpeed = 12;
+
+let playerY, cpuY;
+let ballX, ballY, vx, vy;
+let playerScore = 0, cpuScore = 0;
+let loop;
+let canMove = false;
+
+// 🔊 SONIDOS
+const sonidoInicio = new Audio('sounds/inici.mp3');
+const sonidoRebote = new Audio('sounds/mover.mp3');
+const sonidoPunto  = new Audio('sounds/linea.mp3');
+
+const msg = document.getElementById("msgText");
+
+// LIMITES CORREGIDOS
+function clampPaddles() {
+    if (playerY < 0) playerY = 0;
+    if (playerY > canvas.height - paddleH)
+        playerY = canvas.height - paddleH;
+
+    if (cpuY < 0) cpuY = 0;
+    if (cpuY > canvas.height - paddleH)
+        cpuY = canvas.height - paddleH;
+}
+
+// INIT
+function init() {
+    playerY = cpuY = canvas.height/2 - paddleH/2;
+    ballX = canvas.width/2;
+    ballY = canvas.height/2;
+
+    const dir = Math.random() > 0.5 ? 1 : -1;
+    vx = 2 * dir;
+    vy = 1.5;
+
+    canMove = false;
+    msg.textContent = "GET READY";
+    document.getElementById("message").style.display = "flex";
+
+    sonidoInicio.currentTime = 0;
+    sonidoInicio.play();
+
+    setTimeout(() => {
+        canMove = true;
+        document.getElementById("message").style.display = "none";
+    }, 800);
+}
+
+// CONTROLES
+document.addEventListener("keydown", e => {
+    if (e.key === "ArrowUp") playerY -= moveSpeed;
+    if (e.key === "ArrowDown") playerY += moveSpeed;
+});
+
+// UPDATE
+function update() {
+    if (!canMove) return;
+
+    ballX += vx;
+    ballY += vy;
+
+    if (ballY <= 0 || ballY >= canvas.height) {
+        vy *= -1;
+        sonidoRebote.currentTime = 0;
+        sonidoRebote.play();
+    }
+
+    if (ballX < 15 && ballY > playerY && ballY < playerY + paddleH) {
+        vx *= -1.05;
+        sonidoRebote.currentTime = 0;
+        sonidoRebote.play();
+    }
+
+    if (ballX > canvas.width-15 && ballY > cpuY && ballY < cpuY + paddleH) {
+        vx *= -1.05;
+        sonidoRebote.currentTime = 0;
+        sonidoRebote.play();
+    }
+
+    cpuY += (ballY - (cpuY + paddleH/2)) * 0.08;
+
+    if (ballX < 0) {
+        cpuScore++;
+        sonidoPunto.currentTime = 0;
+        sonidoPunto.play();
+        updateScore();
+        init();
+    }
+
+    if (ballX > canvas.width) {
+        playerScore++;
+        sonidoPunto.currentTime = 0;
+        sonidoPunto.play();
+        updateScore();
+        init();
+    }
+
+    clampPaddles(); // 👈 AQUÍ SE ARREGLA
+}
+
+// DIBUJO
+function draw() {
+    ctx.fillStyle = "black";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle = "white";
+    ctx.fillRect(5, playerY, paddleW, paddleH);
+    ctx.fillRect(canvas.width-11, cpuY, paddleW, paddleH);
+
+    ctx.beginPath();
+    ctx.arc(ballX, ballY, 4, 0, Math.PI*2);
+    ctx.fill();
+}
+
+function updateScore() {
+    document.getElementById("score").textContent =
+        `Player: ${playerScore} | CPU: ${cpuScore}`;
+}
+
+function gameLoop() {
+    update();
+    draw();
+}
+
+function restart() {
+    clearInterval(loop);
+    playerScore = cpuScore = 0;
+    updateScore();
+    init();
+    loop = setInterval(gameLoop, 20);
+}
+
+// START
+init();
+loop = setInterval(gameLoop, 20);
+</script>
+
+</body>
+</html>

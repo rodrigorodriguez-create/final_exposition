@@ -1,0 +1,121 @@
+/* ===== RESET SOLO PARA SNAKE ===== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* ===== BODY RETRO ===== */
+body {
+    background: linear-gradient(#c0c0ff, #e0e0ff);
+    font-family: "Comic Sans MS", Tahoma, Verdana, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* ===== CONTENEDOR ===== */
+.container {
+    width: 420px;
+    background-color: #f0f0f0;
+    border: 4px solid #333;
+    padding: 10px;
+    text-align: center;
+}
+
+/* ===== HEADER ===== */
+header h1 {
+    color: #00008b;
+    font-size: 26px;
+    margin-bottom: 8px;
+    text-shadow: 2px 2px #fff;
+}
+
+/* ===== BOTÓN HOME ===== */
+.menu {
+    background-color: #c0c0c0;
+    border: 3px inset #666;
+    padding: 6px;
+    margin-bottom: 10px;
+}
+
+.menu a {
+    text-decoration: none;
+    color: black;
+    background-color: #e0e0e0;
+    border: 2px outset #666;
+    padding: 5px 15px;
+    font-weight: bold;
+}
+
+.menu a:hover {
+    background-color: #d0d0d0;
+}
+
+/* ===== JUEGO ===== */
+.game-frame {
+    border: 4px solid #333;
+    background-color: #b0ffb0;
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    position: relative;
+}
+
+/* ===== CANVAS ===== */
+canvas {
+    background-color: #a0ffa0;
+    border: 3px solid #000;
+}
+
+/* ===== GAME OVER ===== */
+#message {
+    position: absolute;
+    inset: 0;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+#message div {
+    background: #ffff99;
+    border: 3px inset #900;
+    padding: 20px 25px;
+    font-size: 26px;
+    font-weight: bold;
+    color: red;
+    font-family: "Comic Sans MS", cursive;
+}
+
+/* ===== SCORE ===== */
+#score {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 10px 0;
+    color: #00008b;
+}
+
+/* ===== BOTÓN RESTART ===== */
+#restartBtn {
+    padding: 8px 20px;
+    background-color: #ffcc00;
+    border: 3px outset #999;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#restartBtn:hover {
+    background-color: #ffdd33;
+}
+
+/* ===== TEXTO ===== */
+.instructions {
+    font-size: 14px;
+    margin-top: 8px;
+}
+
+footer {
+    font-size: 12px;
+    margin-top: 6px;
+}
