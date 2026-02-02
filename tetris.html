@@ -25,7 +25,6 @@ body {
 h1 {
     color: #00008b;
     text-shadow: 1px 1px white;
-    margin: 5px 0;
 }
 
 .game-frame {
@@ -36,7 +35,6 @@ h1 {
 }
 
 canvas {
-    display: block;
     background: black;
 }
 
@@ -49,17 +47,11 @@ canvas {
     font-weight: bold;
     color: red;
     text-shadow: 2px 2px black;
-    pointer-events: none;
 }
 
-#gameOverMsg {
-    display: none;
-}
+#gameOverMsg { display: none; }
 
-#score {
-    font-weight: bold;
-    margin-top: 8px;
-}
+#score { font-weight: bold; margin-top: 8px; }
 
 button {
     margin-top: 10px;
@@ -92,39 +84,11 @@ button {
 /* ===== SETUP ===== */
 const canvas = document.getElementById("tetris");
 const ctx = canvas.getContext("2d");
-const blockSize = 20;
+const block = 20;
 
-const countdownEl = document.getElementById("countdown");
-const gameOverMsg = document.getElementById("gameOverMsg");
-const restartBtn = document.getElementById("restartBtn");
-const scoreEl = document.getElementById("score");
-
-/* ===== SOUNDS ===== */
-const sonidoInicio = new Audio("sounds/inicio.mp3");
-const sonidoMover  = new Audio("sounds/mover.mp3");
-const sonidoCaer   = new Audio("sounds/comer.mp3");
-const sonidoLinea  = new Audio("sounds/linea.mp3");
-const sonidoPerder = new Audio("sounds/muerte.mp3");
-
-[sonidoInicio, sonidoMover, sonidoCaer, sonidoLinea, sonidoPerder]
-.forEach(s => s.volume = 0.5);
-
-/* ===== COLORS ===== */
-const colors = [
-    null,
-    "#00ff00",
-    "#ff0000",
-    "#0000ff",
-    "#ffff00",
-    "#ff00ff",
-    "#00ffff",
-    "#ffa500"
-];
-
-/* ===== ARENA ===== */
 const arena = Array.from({ length: 20 }, () => Array(10).fill(0));
+const colors = [null,"#0f0","#f00","#00f","#ff0","#f0f","#0ff","#fa0"];
 
-/* ===== PLAYER ===== */
 const player = {
     pos: { x: 0, y: 0 },
     matrix: null,
@@ -134,42 +98,46 @@ const player = {
 let dropCounter = 0;
 let dropInterval = 800;
 let lastTime = 0;
-let animationId = null;
+let animationId;
 let gameOver = false;
 
+const scoreEl = document.getElementById("score");
+const gameOverMsg = document.getElementById("gameOverMsg");
+const restartBtn = document.getElementById("restartBtn");
+const countdownEl = document.getElementById("countdown");
+
 /* ===== PIECES ===== */
-function createPiece(type) {
-    if (type === "T") return [[0,1,0],[1,1,1]];
-    if (type === "O") return [[2,2],[2,2]];
-    if (type === "L") return [[0,0,3],[3,3,3]];
-    if (type === "J") return [[4,0,0],[4,4,4]];
-    if (type === "I") return [[5],[5],[5],[5]];
-    if (type === "S") return [[0,6,6],[6,6,0]];
-    if (type === "Z") return [[7,7,0],[0,7,7]];
+function createPiece(t) {
+    if (t === "T") return [[0,1,0],[1,1,1]];
+    if (t === "O") return [[2,2],[2,2]];
+    if (t === "L") return [[0,0,3],[3,3,3]];
+    if (t === "J") return [[4,0,0],[4,4,4]];
+    if (t === "I") return [[5],[5],[5],[5]];
+    if (t === "S") return [[0,6,6],[6,6,0]];
+    if (t === "Z") return [[7,7,0],[0,7,7]];
 }
 
-/* ===== COLLISION (MARCO REAL) ===== */
+/* ===== COLLISION ===== */
 function collide() {
     for (let y = 0; y < player.matrix.length; y++) {
         for (let x = 0; x < player.matrix[y].length; x++) {
             if (player.matrix[y][x]) {
-                const nx = x + player.pos.x;
                 const ny = y + player.pos.y;
+                const nx = x + player.pos.x;
 
                 if (
                     nx < 0 ||
-                    nx >= arena[0].length ||
-                    ny >= arena.length
+                    nx >= 10 ||
+                    ny >= 20 ||
+                    arena[ny]?.[nx]
                 ) return true;
-
-                if (arena[ny]?.[nx]) return true;
             }
         }
     }
     return false;
 }
 
-/* ===== RESET PIECE ===== */
+/* ===== RESET ===== */
 function playerReset() {
     const pieces = "TJLOSZI";
     player.matrix = createPiece(pieces[Math.random() * pieces.length | 0]);
@@ -177,7 +145,6 @@ function playerReset() {
     player.pos.x = 3;
 
     if (collide()) {
-        sonidoPerder.play();
         gameOver = true;
         cancelAnimationFrame(animationId);
         gameOverMsg.style.display = "block";
@@ -192,63 +159,56 @@ function merge() {
             if (value) arena[y + player.pos.y][x + player.pos.x] = value;
         });
     });
-    sonidoCaer.play();
 }
 
-/* ===== CLEAR LINES ===== */
+/* ===== FIX DEFINITIVO: CLEAR LINES ===== */
 function arenaSweep() {
-    for (let y = arena.length - 1; y >= 0; y--) {
-        if (arena[y].every(v => v !== 0)) {
+    let linesCleared = 0;
+
+    for (let y = arena.length - 1; y >= 0; ) {
+        if (arena[y].every(cell => cell !== 0)) {
             arena.splice(y, 1);
             arena.unshift(Array(10).fill(0));
-            player.score += 10;
-            sonidoLinea.play();
+            linesCleared++;
+        } else {
+            y--; // 👈 CLAVE: solo bajamos si no borramos
         }
+    }
+
+    if (linesCleared > 0) {
+        player.score += linesCleared * 10;
+
+        // bonus tipo Tetris real
+        if (linesCleared === 4) {
+            player.score += 20; // TETRIS 🔥
+        }
+
+        dropInterval = Math.max(200, dropInterval - linesCleared * 40);
     }
 }
 
-/* ===== DRAW BLOCK (TEXTURA) ===== */
+/* ===== DRAW ===== */
 function drawBlock(x, y, color) {
-    const px = x * blockSize;
-    const py = y * blockSize;
-
     ctx.fillStyle = color;
-    ctx.fillRect(px, py, blockSize, blockSize);
-
-    ctx.strokeStyle = "#fff";
-    ctx.beginPath();
-    ctx.moveTo(px, py + blockSize);
-    ctx.lineTo(px, py);
-    ctx.lineTo(px + blockSize, py);
-    ctx.stroke();
-
+    ctx.fillRect(x * block, y * block, block, block);
     ctx.strokeStyle = "#000";
-    ctx.beginPath();
-    ctx.moveTo(px + blockSize, py);
-    ctx.lineTo(px + blockSize, py + blockSize);
-    ctx.lineTo(px, py + blockSize);
-    ctx.stroke();
+    ctx.strokeRect(x * block, y * block, block, block);
 }
 
-/* ===== DRAW ===== */
 function draw() {
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     arena.forEach((row, y) =>
-        row.forEach((value, x) => {
-            if (value) drawBlock(x, y, colors[value]);
-        })
+        row.forEach((v, x) => v && drawBlock(x, y, colors[v]))
     );
 
     player.matrix.forEach((row, y) =>
-        row.forEach((value, x) => {
-            if (value) drawBlock(x + player.pos.x, y + player.pos.y, colors[value]);
-        })
+        row.forEach((v, x) => v && drawBlock(x + player.pos.x, y + player.pos.y, colors[v]))
     );
 }
 
-/* ===== GAME LOOP ===== */
+/* ===== LOOP ===== */
 function update(time = 0) {
     if (gameOver) return;
 
@@ -277,53 +237,61 @@ function updateScore() {
     scoreEl.textContent = "Score: " + player.score;
 }
 
+/* ===== ROTATE SAFE ===== */
+function rotate() {
+    const prev = player.matrix;
+    player.matrix = prev[0].map((_, i) => prev.map(row => row[i]).reverse());
+    if (collide()) player.matrix = prev;
+}
+
 /* ===== CONTROLS ===== */
 document.addEventListener("keydown", e => {
     if (gameOver) return;
 
-    if (e.key === "ArrowLeft") { player.pos.x--; sonidoMover.play(); }
-    if (e.key === "ArrowRight") { player.pos.x++; sonidoMover.play(); }
-    if (e.key === "ArrowDown") player.pos.y++;
-    if (e.key === "ArrowUp") player.matrix = rotate(player.matrix);
+    const prevX = player.pos.x;
 
-    if (collide()) {
-        if (e.key === "ArrowDown") player.pos.y--;
-        else player.pos.x += e.key === "ArrowLeft" ? 1 : -1;
+    if (e.key === "ArrowLeft") player.pos.x--;
+    if (e.key === "ArrowRight") player.pos.x++;
+    if (e.key === "ArrowDown") {
+        player.pos.y++;
+        if (collide()) {
+            player.pos.y--;
+            merge();
+            arenaSweep();
+            updateScore();
+            playerReset();
+        }
     }
+    if (e.key === "ArrowUp") rotate();
+
+    if (collide()) player.pos.x = prevX;
 });
 
-/* ===== ROTATE ===== */
-function rotate(matrix) {
-    return matrix[0].map((_, i) => matrix.map(row => row[i]).reverse());
-}
-
 /* ===== RESTART ===== */
-restartBtn.addEventListener("click", () => {
+restartBtn.onclick = () => {
     arena.forEach(row => row.fill(0));
     player.score = 0;
-    updateScore();
+    dropInterval = 800;
     gameOver = false;
 
     gameOverMsg.style.display = "none";
     restartBtn.style.display = "none";
 
-    lastTime = 0;
-    dropCounter = 0;
+    updateScore();
     playerReset();
     update();
-});
+};
 
 /* ===== COUNTDOWN ===== */
-let count = 3;
-countdownEl.textContent = count;
-sonidoInicio.play();
+let c = 3;
+countdownEl.textContent = c;
 
 const timer = setInterval(() => {
-    count--;
-    if (count > 0) countdownEl.textContent = count;
+    c--;
+    if (c > 0) countdownEl.textContent = c;
     else {
-        countdownEl.textContent = "";
         clearInterval(timer);
+        countdownEl.textContent = "";
         playerReset();
         updateScore();
         update();
@@ -333,3 +301,5 @@ const timer = setInterval(() => {
 
 </body>
 </html>
+
+
