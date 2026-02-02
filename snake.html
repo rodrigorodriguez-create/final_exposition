@@ -6,7 +6,6 @@
 <title>Snake Game 🐍 Retro</title>
 
 <style>
-/* ===== CONTENEDOR RAÍZ (AISLAMIENTO) ===== */
 .snake-app {
     background: linear-gradient(#c0c0ff, #e0e0ff);
     font-family: "Comic Sans MS", Tahoma, Verdana, sans-serif;
@@ -16,7 +15,6 @@
     align-items: center;
 }
 
-/* ===== CONTENEDOR PRINCIPAL ===== */
 .snake-container {
     width: 420px;
     background-color: #f0f0f0;
@@ -25,14 +23,12 @@
     text-align: center;
 }
 
-/* ===== HEADER ===== */
 header h1 {
     color: #00008b;
     text-shadow: 2px 2px #fff;
     margin: 10px 0;
 }
 
-/* ===== MENU ===== */
 .menu {
     background-color: #c0c0c0;
     border: 3px inset #666;
@@ -49,18 +45,12 @@ header h1 {
     font-weight: bold;
 }
 
-.menu a:hover {
-    background-color: #d0d0d0;
-}
-
-/* ===== MAIN ===== */
 main {
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
-/* ===== COUNTDOWN ===== */
 #countdown {
     font-size: 40px;
     font-weight: bold;
@@ -69,7 +59,6 @@ main {
     text-shadow: 2px 2px #000;
 }
 
-/* ===== GAME FRAME ===== */
 .game-frame {
     position: relative;
     border: 4px solid #333;
@@ -77,13 +66,11 @@ main {
     padding: 10px;
 }
 
-/* ===== CANVAS ===== */
 canvas {
     background-color: #a0ffa0;
     border: 3px solid #000;
 }
 
-/* ===== GAME OVER ===== */
 #message {
     position: absolute;
     inset: 0;
@@ -99,10 +86,8 @@ canvas {
     font-size: 26px;
     font-weight: bold;
     color: red;
-    text-shadow: 1px 1px #fff;
 }
 
-/* ===== SCORE ===== */
 #score {
     font-size: 20px;
     font-weight: bold;
@@ -110,22 +95,12 @@ canvas {
     color: #00008b;
 }
 
-/* ===== BOTÓN ===== */
 #restartBtn {
     padding: 8px 20px;
     background-color: #ffcc00;
     border: 3px outset #999;
     cursor: pointer;
     font-weight: bold;
-}
-
-#restartBtn:hover {
-    background-color: #ffdd33;
-}
-
-footer {
-    font-size: 12px;
-    margin-top: 8px;
 }
 </style>
 </head>
@@ -154,10 +129,6 @@ footer {
     <button id="restartBtn">Restart Game</button>
     <p>Use arrow keys to play</p>
 </main>
-
-<footer>
-    <p>Easter Egg</p>
-</footer>
 
 </div>
 </div>
@@ -189,6 +160,7 @@ function restartGame() {
     message.style.display = "none";
     clearInterval(game);
     clearInterval(countdownInterval);
+    countdown.style.display = "block";
     startCountdown();
 }
 
@@ -203,7 +175,10 @@ function startCountdown() {
         else {
             clearInterval(countdownInterval);
             countdown.textContent = "GO!";
-            startGame();
+            setTimeout(() => {
+                countdown.style.display = "none";
+                startGame();
+            }, 500);
         }
     }, 1000);
 }
@@ -215,25 +190,35 @@ function startGame() {
     score = 0;
     speed = 120;
     scoreDisplay.textContent = `Score: ${score}`;
+
+    document.removeEventListener("keydown", changeDirection);
     document.addEventListener("keydown", changeDirection);
+
     game = setInterval(draw, speed);
 }
 
 function randomFood() {
-    return { x: Math.floor(Math.random() * 20) * box, y: Math.floor(Math.random() * 20) * box };
+    let newFood;
+    do {
+        newFood = {
+            x: Math.floor(Math.random() * 20) * box,
+            y: Math.floor(Math.random() * 20) * box
+        };
+    } while (snake && snake.some(p => p.x === newFood.x && p.y === newFood.y));
+    return newFood;
 }
 
 function changeDirection(e) {
-    const key = e.key;
     let newDir = direction;
 
-    if (key==="ArrowUp" && direction!=="DOWN") newDir="UP";
-    if (key==="ArrowDown" && direction!=="UP") newDir="DOWN";
-    if (key==="ArrowLeft" && direction!=="RIGHT") newDir="LEFT";
-    if (key==="ArrowRight" && direction!=="LEFT") newDir="RIGHT";
+    if (e.key==="ArrowUp" && direction!=="DOWN") newDir="UP";
+    if (e.key==="ArrowDown" && direction!=="UP") newDir="DOWN";
+    if (e.key==="ArrowLeft" && direction!=="RIGHT") newDir="LEFT";
+    if (e.key==="ArrowRight" && direction!=="LEFT") newDir="RIGHT";
 
     if (newDir !== direction) {
         direction = newDir;
+        sonidoMover.currentTime = 0;
         sonidoMover.play();
     }
 }
@@ -245,7 +230,6 @@ function draw() {
     snake.forEach((p,i)=>{
         ctx.fillStyle = i===0 ? "#00ff00" : "#008000";
         ctx.fillRect(p.x,p.y,box,box);
-        ctx.strokeStyle="#003300";
         ctx.strokeRect(p.x,p.y,box,box);
     });
 
@@ -274,6 +258,10 @@ function draw() {
         score++;
         scoreDisplay.textContent=`Score: ${score}`;
         sonidoComer.play();
+
+        clearInterval(game);
+        speed = Math.max(50, speed - 5);
+        game = setInterval(draw, speed);
     } else snake.pop();
 
     snake.unshift({x:headX,y:headY});
@@ -281,6 +269,5 @@ function draw() {
 
 startCountdown();
 </script>
-
 </body>
 </html>
